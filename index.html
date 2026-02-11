@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>San Valentín 💖</title>
+
+  <style>
+    :root{
+      --bg1:#ff4d7d;
+      --bg2:#ffb3c7;
+      --paper:#f7efe6;
+      --ink:#3a2f2f;
+      --muted:#6b5f5f;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: system-ui, Arial;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:grid;
+      place-items:center;
+      padding:18px;
+      overflow:hidden;
+    }
+
+    /* corazones flotando */
+    .float-hearts{position:fixed; inset:0; pointer-events:none}
+    .h{
+      position:absolute;
+      bottom:-40px;
+      font-size:18px;
+      animation: rise linear infinite;
+    }
+    @keyframes rise{
+      from{transform:translateY(0);opacity:0}
+      10%{opacity:1}
+      to{transform:translateY(-120vh);opacity:0}
+    }
+
+    .card{
+      background:var(--paper);
+      border-radius:26px;
+      max-width:980px;
+      width:96vw;
+      padding:22px;
+      box-shadow:0 24px 70px rgba(0,0,0,.2);
+      position:relative;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+      align-items:center;
+    }
+
+    h1{margin:0 0 10px}
+    .to{font-weight:700;color:var(--muted)}
+    .msg{white-space:pre-line; font-size:18px; line-height:1.6; color:var(--ink)}
+
+    .counterWrap{
+      margin-top:14px;
+      padding:14px;
+      border-radius:16px;
+      background:#ffd6e3;
+    }
+    .counter{font-weight:800}
+
+    .btns{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; position:relative}
+    button{
+      border:0;
+      border-radius:999px;
+      padding:12px 16px;
+      font-weight:800;
+      cursor:pointer;
+      transition: transform .08s ease;
+    }
+    button:active{ transform: scale(.98); }
+    .primary{background:#ff2f68;color:white}
+    .ghost{background:white;color:#ff2f68;border:1px solid #ff2f68}
+
+    #respuesta{margin-top:12px;font-weight:800;color:#ff2f68; min-height:24px}
+
+    canvas{
+      width:100%;
+      max-width:420px;
+      aspect-ratio:1/1;
+      border-radius:20px;
+      background:white;
+      box-shadow:0 14px 30px rgba(0,0,0,.12);
+    }
+
+    .videoBox{ margin-top:18px; text-align:center; }
+    .soundBtn{
+      margin-top:10px;
+      background:#111; color:#fff;
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:800;
+    }
+    .tip{ font-size:12px; color:var(--muted); margin-top:8px; }
+
+    @media(max-width:800px){
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="float-hearts" id="floatHearts"></div>
+
+  <div class="card" id="card">
+    <div class="grid">
+      <section>
+        <p class="to">Para el amor de mi vida: Adriana</p>
+        <h1>💖 Feliz 14 de Febrero 💖</h1>
+
+        <p class="msg">Tu eres el amor de mi vida y de mi alma
+Y este 14 de febrero es muy especial por que estas tu en mi vida mi reina hermosa
+Te amo con todo mi corazón Adriana.</p>
+
+        <!-- VIDEO -->
+        <div class="videoBox">
+          <iframe id="yt"
+            width="100%" height="280"
+            src="https://www.youtube.com/embed/fj43NVlq9QA?autoplay=1&mute=1&playsinline=1"
+            allow="autoplay; encrypted-media"
+            allowfullscreen>
+          </iframe>
+
+          <button class="soundBtn" id="btnSound">🔊 Activar sonido</button>
+          <p class="tip">Tip: El navegador suele bloquear sonido automático. Este botón lo activa.</p>
+        </div>
+
+        <div class="counterWrap">
+          <p>Mi amor por ti comenzó hace…</p>
+          <div class="counter" id="counter">—</div>
+          <p class="tip">Desde el 10 de agosto de 2025 ❤️</p>
+        </div>
+
+        <div class="btns" id="btns">
+          <button class="primary" id="btnSi">💖 ¿Quieres ser mi San Valentín?</button>
+          <button class="ghost" id="btnNo">😳 No</button>
+        </div>
+
+        <p id="respuesta"></p>
+      </section>
+
+      <section>
+        <canvas id="tree" width="520" height="520"></canvas>
+      </section>
+    </div>
+  </div>
+
+<script>
+  // Referencias seguras (evita bugs por variables globales)
+  const elCounter = document.getElementById("counter");
+  const elRespuesta = document.getElementById("respuesta");
+  const floatHearts = document.getElementById("floatHearts");
+  const canvas = document.getElementById("tree");
+  const ctx = canvas.getContext("2d");
+  const btnSi = document.getElementById("btnSi");
+  const btnNo = document.getElementById("btnNo");
+  const card = document.getElementById("card");
+  const btns = document.getElementById("btns");
+  const btnSound = document.getElementById("btnSound");
+  const yt = document.getElementById("yt");
+
+  /* CONTADOR */
+  const startDate = new Date("2025-08-10T00:00:00");
+  function pad(n){ return String(n).padStart(2,"0"); }
+
+  function updateCounter(){
+    const diffMs = new Date() - startDate;
+    const s = Math.max(0, Math.floor(diffMs/1000));
+    const days = Math.floor(s/86400);
+    const h = Math.floor((s%86400)/3600);
+    const m = Math.floor((s%3600)/60);
+    const sec = s%60;
+
+    elCounter.textContent = `${days} días ${pad(h)} horas ${pad(m)} minutos ${pad(sec)} segundos`;
+  }
+  updateCounter();
+  setInterval(updateCounter, 1000);
+
+  /* BOTONES */
+  function burstHearts(n=14){
+    const hearts=["💗","💖","💘","💝","❤️","💕","🌹"];
+    for(let i=0;i<n;i++){
+      const h=document.createElement("div");
+      h.className="h";
+      h.textContent=hearts[Math.floor(Math.random()*hearts.length)];
+      h.style.left=Math.random()*100+"vw";
+      h.style.animationDuration=(5+Math.random()*6)+"s";
+      floatHearts.appendChild(h);
+      setTimeout(()=>h.remove(),12000);
+    }
+  }
+
+  btnSi.addEventListener("click", () => {
+    elRespuesta.textContent = "SIIII 💍💖✨ Sabía que dirías que sí mi amor 😍🥹";
+    burstHearts(22);
+  });
+
+  // El "No" se mueve (más divertido)
+  function moveNo(){
+    const rect = btns.getBoundingClientRect();
+    const maxX = rect.width - btnNo.offsetWidth;
+    const maxY = rect.height - btnNo.offsetHeight;
+
+    const x = Math.max(0, Math.random() * maxX);
+    const y = Math.max(0, Math.random() * maxY);
+
+    btnNo.style.position = "absolute";
+    btnNo.style.left = x + "px";
+    btnNo.style.top  = y + "px";
+  }
+
+  btnNo.addEventListener("mouseenter", moveNo);
+  btnNo.addEventListener("click", () => {
+    elRespuesta.textContent = "Esa opción no existe 😤❤️ inténtalo otra vez 😘";
+    burstHearts(10);
+    moveNo();
+  });
+
+  /* Botón activar sonido en YouTube:
+     truco: recargar el iframe con mute=0 tras interacción del usuario */
+  btnSound.addEventListener("click", () => {
+    const base = "https://www.youtube.com/embed/fj43NVlq9QA";
+    yt.src = base + "?autoplay=1&mute=0&playsinline=1";
+    burstHearts(8);
+  });
+
+  /* ARBOL / corazones en canvas */
+  function heart(x,y,s){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(s,s);
+    ctx.beginPath();
+    ctx.moveTo(0,0.3);
+    ctx.bezierCurveTo(0,-0.2,-0.5,-0.2,-0.5,0.3);
+    ctx.bezierCurveTo(-0.5,0.6,0,0.9,0,1);
+    ctx.bezierCurveTo(0,0.9,0.5,0.6,0.5,0.3);
+    ctx.bezierCurveTo(0.5,-0.2,0,-0.2,0,0.3);
+    ctx.fillStyle="#ff4d7d";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function draw(){
+    // limpiar
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // tronco simple (opcional, leve)
+    ctx.fillStyle = "#7a4a3a";
+    ctx.fillRect(252, 260, 16, 170);
+
+    // copa de corazones
+    for(let i=0;i<260;i++){
+      heart(
+        260 + (Math.random()*260 - 130),
+        200 + (Math.random()*200 - 100),
+        0.22 + Math.random()*0.12
+      );
+    }
+
+    // base
+    ctx.fillStyle="#ffd6e3";
+    ctx.beginPath();
+    ctx.ellipse(260, 448, 120, 26, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  draw();
+</script>
+
+</body>
+</html>
